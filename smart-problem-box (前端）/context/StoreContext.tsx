@@ -301,9 +301,16 @@ export const StoreProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       ...prev,
       user: { ...prev.user, ...profile }
     }));
-    apiUpdateProfile(profile).catch((error) => {
-      console.error('更新用户信息失败：', error);
-    });
+    apiUpdateProfile(profile)
+      .then(({ profile: nextProfile }) => {
+        setState(prev => ({
+          ...prev,
+          user: { ...prev.user, ...nextProfile }
+        }));
+      })
+      .catch((error) => {
+        console.error('更新用户信息失败：', error);
+      });
   };
 
   return (

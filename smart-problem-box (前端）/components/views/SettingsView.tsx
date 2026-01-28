@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../../context/StoreContext';
 import { User, Mail, Lock, Moon, Sun, Monitor, Save, PanelLeft, Camera, Check, X } from 'lucide-react';
+import { apiChangePassword } from '../../api';
 
 const SettingsView: React.FC = () => {
     const { state, toggleDarkMode, updateUserProfile, toggleSidebar, setViewMode } = useStore();
@@ -21,7 +22,7 @@ const SettingsView: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleSave = () => {
-        updateUserProfile({ name, email, avatar });
+        updateUserProfile({ name, avatar });
         setIsSaved(true);
         setTimeout(() => setIsSaved(false), 2000);
     };
@@ -41,7 +42,7 @@ const SettingsView: React.FC = () => {
         }
     };
 
-    const handleChangePassword = (e: React.FormEvent) => {
+    const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
         setPasswordError('');
         setPasswordSuccess('');
@@ -55,9 +56,8 @@ const SettingsView: React.FC = () => {
             setPasswordError('新密码长度不能少于6位');
             return;
         }
-
-        // Mock password change success
-        setTimeout(() => {
+        try {
+            await apiChangePassword({ currentPassword, newPassword });
             setPasswordSuccess('密码修改成功！');
             setCurrentPassword('');
             setNewPassword('');
@@ -66,7 +66,10 @@ const SettingsView: React.FC = () => {
                 setIsChangePasswordOpen(false);
                 setPasswordSuccess('');
             }, 1500);
-        }, 500);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : '修改密码失败';
+            setPasswordError(message);
+        }
     };
 
     return (
@@ -128,12 +131,12 @@ const SettingsView: React.FC = () => {
                                     <label className="text-xs font-medium text-zinc-500">邮箱</label>
                                     <div className="relative">
                                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-                                        <input 
-                                            type="email" 
-                                            value={email}
-                                            onChange={(e) => setEmail(e.target.value)}
-                                            className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-900 dark:text-white focus:ring-1 focus:ring-primary outline-none"
-                                        />
+                                    <input 
+                                        type="email" 
+                                        value={email}
+                                        readOnly
+                                        className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg pl-9 pr-3 py-2 text-sm text-zinc-900 dark:text-white focus:ring-1 focus:ring-primary outline-none cursor-not-allowed"
+                                    />
                                     </div>
                                 </div>
                             </div>

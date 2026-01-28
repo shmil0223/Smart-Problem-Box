@@ -1,2 +1,4 @@
 .env
 backend/.env
+.env.local
+smart-problem-box (前端）/.env.local

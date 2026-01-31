@@ -6,6 +6,9 @@ import { Sparkles, CheckCircle, RefreshCcw, ArrowLeft, ChevronDown, Folder } fro
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+
+// KaTeX 配置：允许 Unicode/中文字符
+const katexOptions = { strict: false };
 import 'katex/dist/katex.min.css';
 import { apiGenerateSimilarProblem, apiFetchLatestPractice, apiFetchPracticeList, apiSaveQuestions, apiSubmitAndGradeAnswer } from '../../api';
 import { AIInlineLoader } from '../ui/AiLoaders';
@@ -375,7 +378,7 @@ const PracticeView: React.FC<PracticeViewProps> = ({ problem }) => {
                         {generateError && <span className="text-red-500">{generateError}</span>}
                         {!!generatedQuestion && (
                             <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                                     {normalizeMarkdown(generatedQuestion)}
                                 </ReactMarkdown>
                             </div>

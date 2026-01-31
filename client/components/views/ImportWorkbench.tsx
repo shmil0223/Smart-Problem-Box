@@ -3,6 +3,9 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+
+// KaTeX 配置：允许 Unicode/中文字符
+const katexOptions = { strict: false };
 import 'katex/dist/katex.min.css';
 import { preprocessLaTeX } from '../../utils/latex';
 import { useStore } from '../../context/StoreContext';
@@ -625,7 +628,7 @@ const ImportWorkbench: React.FC = () => {
                                             预览
                                         </div>
                                         <div className="flux-math prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:leading-6 prose-p:my-2 text-zinc-700 dark:text-white/90 prose-p:text-zinc-700 dark:prose-p:text-white prose-li:text-zinc-700 dark:prose-li:text-white">
-                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                                                 {preprocessLaTeX(item.content)}
                                             </ReactMarkdown>
                                         </div>

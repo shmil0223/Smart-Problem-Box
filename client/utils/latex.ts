@@ -135,6 +135,51 @@ const normalizeMathPairs = (text: string) => {
   return next;
 };
 
+// 将 \text{中文} 移到数学块外面，避免 KaTeX 渲染错误
+const moveChineseTextOutOfMath = (text: string): string => {
+  // 处理 $...\text{中文}...$ 格式
+  // 策略：把包含中文的 \text{} 分割出来
+  
+  return text.replace(/\$([^$]+)\$/g, (match, inner) => {
+    // 检查是否包含带中文的 \text{}
+    const textWithChinesePattern = /\\text\s*\{([^}]*[\u4e00-\u9fff][^}]*)\}/g;
+    
+    if (!textWithChinesePattern.test(inner)) {
+      return match; // 没有中文，原样返回
+    }
+    
+    // 重置正则
+    textWithChinesePattern.lastIndex = 0;
+    
+    // 分割：把 \text{中文} 提取出来作为普通文本
+    let result = '';
+    let lastIndex = 0;
+    let m;
+    
+    while ((m = textWithChinesePattern.exec(inner)) !== null) {
+      // 添加 \text{} 之前的数学内容
+      const beforeText = inner.slice(lastIndex, m.index).trim();
+      if (beforeText) {
+        result += `$${beforeText}$ `;
+      }
+      
+      // 添加中文文本（不用 $ 包裹）
+      const chineseText = m[1].trim();
+      result += chineseText + ' ';
+      
+      lastIndex = m.index + m[0].length;
+    }
+    
+    // 添加剩余的数学内容
+    const remaining = inner.slice(lastIndex).trim();
+    if (remaining) {
+      result += `$${remaining}$`;
+    }
+    
+    return result.trim();
+  });
+};
+
 export const preprocessLaTeX = (value: string) => {
   if (!value) return '';
 
@@ -156,6 +201,9 @@ export const preprocessLaTeX = (value: string) => {
   text = text.replace(/\$(\s*\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}\s*)\$/g, (_m, inner) => `$$${inner}$$`);
   text = text.replace(/\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g, (match) => `$$${match}$$`);
   text = text.replace(/\\left[\s\S]*?\\right[\)\}\]]/g, (match) => `$${match}$`);
+
+  // 处理 \text{中文} - 移到数学块外面
+  text = moveChineseTextOutOfMath(text);
 
   const mathChunks = text.split(/(\$\$[\s\S]*?\$\$|\$[^$]*\$)/g);
   text = mathChunks

@@ -6,6 +6,27 @@ const { z } = require('zod');
 
 dotenv.config();
 
+// 带超时的 fetch 封装（默认 60 秒）
+const fetchWithTimeout = async (url, options = {}, timeout = 60000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    return response;
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      throw new Error(`请求超时 (${timeout / 1000}s)`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
 const {
   SUPABASE_URL,
   SUPABASE_ANON_KEY,
@@ -161,31 +182,39 @@ const getProviderConfig = (model) => {
   };
 };
 
-const callChatCompletions = async ({ model, messages, response_format, temperature }) => {
+const callChatCompletions = async ({ model, messages, response_format, temperature, timeout = 90000 }) => {
   const provider = getProviderConfig(model);
   if (!provider.apiKey) {
     return { ok: false, error: '缺少模型平台的 API Key' };
   }
 
-  const aiResponse = await fetch(`${provider.baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      ...provider.headers,
-      Authorization: `Bearer ${provider.apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      ...(response_format ? { response_format } : {}),
-      ...(typeof temperature === 'number' ? { temperature } : {})
-    })
-  });
+  try {
+    const aiResponse = await fetchWithTimeout(
+      `${provider.baseUrl}/chat/completions`,
+      {
+        method: 'POST',
+        headers: {
+          ...provider.headers,
+          Authorization: `Bearer ${provider.apiKey}`
+        },
+        body: JSON.stringify({
+          model,
+          messages,
+          ...(response_format ? { response_format } : {}),
+          ...(typeof temperature === 'number' ? { temperature } : {})
+        })
+      },
+      timeout // 默认 90 秒超时
+    );
 
-  const aiJson = await aiResponse.json();
-  if (!aiResponse.ok) {
-    return { ok: false, error: aiJson?.error?.message || '模型请求失败' };
+    const aiJson = await aiResponse.json();
+    if (!aiResponse.ok) {
+      return { ok: false, error: aiJson?.error?.message || '模型请求失败' };
+    }
+    return { ok: true, data: aiJson };
+  } catch (error) {
+    return { ok: false, error: error.message || '模型请求失败' };
   }
-  return { ok: true, data: aiJson };
 };
 
 const callEmbeddings = async ({ input, model }) => {
@@ -1176,25 +1205,34 @@ app.post('/api/import/analyze', async (req, res) => {
     '输出必须以 { 开头，以 } 结束；不得包含多余字符。'
   ].join('\n');
 
-  const aiResponse = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${DASHSCOPE_API_KEY}`
-    },
-    body: JSON.stringify({
-      model: 'qwen-vl-max',
-      input: {
-        messages: [
-          { role: 'system', content: [{ text: '你只输出 JSON。' }] },
-          { role: 'user', content: [{ image: imageUrl }, { text: prompt }] }
-        ]
+  let aiResponse;
+  try {
+    aiResponse = await fetchWithTimeout(
+      'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${DASHSCOPE_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'qwen-vl-max',
+          input: {
+            messages: [
+              { role: 'system', content: [{ text: '你只输出 JSON。' }] },
+              { role: 'user', content: [{ image: imageUrl }, { text: prompt }] }
+            ]
+          },
+          parameters: {
+            temperature: 0.0
+          }
+        })
       },
-      parameters: {
-        temperature: 0.0
-      }
-    })
-  });
+      90000 // 90 秒超时（OCR 可能较慢）
+    );
+  } catch (error) {
+    return res.status(400).json({ message: error.message || 'OCR 识别超时，请稍后重试' });
+  }
 
   const aiJson = await aiResponse.json();
   if (!aiResponse.ok) {
@@ -1286,24 +1324,34 @@ app.post('/api/import/analyze', async (req, res) => {
       '输出必须以 { 开头，以 } 结束。',
       '如果无法识别选项，options 返回空数组。',
     ].join('\n');
-    const retry = await fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${DASHSCOPE_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'qwen-vl-max',
-        input: {
-          messages: [
-            { role: 'system', content: [{ text: '你只输出 JSON。' }] },
-            { role: 'user', content: [{ image: imageUrl }, { text: strictPrompt }] }
-          ]
+    let retry;
+    try {
+      retry = await fetchWithTimeout(
+        'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${DASHSCOPE_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: 'qwen-vl-max',
+            input: {
+              messages: [
+                { role: 'system', content: [{ text: '你只输出 JSON。' }] },
+                { role: 'user', content: [{ image: imageUrl }, { text: strictPrompt }] }
+              ]
+            },
+            parameters: { temperature: 0.0 }
+          })
         },
-        parameters: { temperature: 0.0 }
-      })
-    });
-    const retryJson = await retry.json();
+        90000 // 90 秒超时
+      );
+    } catch {
+      // 重试超时，使用已有的 candidates
+      retry = null;
+    }
+    const retryJson = retry ? await retry.json() : {};
     const retryContent = Array.isArray(retryJson?.output?.choices?.[0]?.message?.content)
       ? retryJson.output.choices[0].message.content.map((part) => part.text || '').join('')
       : (typeof retryJson?.output?.choices?.[0]?.message?.content === 'string'

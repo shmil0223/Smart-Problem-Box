@@ -14,7 +14,36 @@ export const clearAccessToken = () => {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
 };
 
-const request = async <T>(path: string, options: RequestInit = {}) => {
+// 带超时的 fetch 封装
+const fetchWithTimeout = async (
+  url: string,
+  options: RequestInit & { timeout?: number } = {}
+): Promise<Response> => {
+  const { timeout = 30000, ...fetchOptions } = options;
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...fetchOptions,
+      signal: controller.signal
+    });
+    return response;
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      throw new Error('请求超时，请稍后重试');
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+};
+
+const request = async <T>(
+  path: string,
+  options: RequestInit & { timeout?: number } = {}
+) => {
   const token = getAccessToken();
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type')) {
@@ -24,9 +53,12 @@ const request = async <T>(path: string, options: RequestInit = {}) => {
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...options,
-    headers
+  const { timeout, ...restOptions } = options;
+  
+  const response = await fetchWithTimeout(`${API_BASE_URL}${path}`, {
+    ...restOptions,
+    headers,
+    timeout: timeout || 30000 // 默认 30 秒
   });
 
   const text = await response.text();
@@ -151,7 +183,8 @@ export const apiDeleteProblemsBatch = (problemIds: string[]) => {
 export const apiAnalyzeImport = (payload: { dataUrl: string }) => {
   return request<{ imageUrl: string; candidates: Array<{ content: string }> }>('/api/import/analyze', {
     method: 'POST',
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
+    timeout: 180000 // 3 分钟超时（OCR + 清洗可能需要较长时间）
   });
 };
 

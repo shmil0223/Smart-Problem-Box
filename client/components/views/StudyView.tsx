@@ -3,6 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+
+// KaTeX 配置：允许 Unicode/中文字符
+const katexOptions = { strict: false };
 import 'katex/dist/katex.min.css';
 import { useStore } from '../../context/StoreContext';
 import { Problem } from '../../types';
@@ -145,7 +148,7 @@ const StudyView: React.FC<StudyViewProps> = ({ problem }) => {
   const renderMarkdown = (content: string) => (
     <ReactMarkdown
       remarkPlugins={[remarkMath]}
-      rehypePlugins={[rehypeKatex]}
+      rehypePlugins={[[rehypeKatex, katexOptions]]}
       components={{
         h3: ({ children }) => (
           <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-900 dark:bg-gradient-to-r dark:from-white dark:to-gray-400 dark:bg-clip-text dark:text-transparent">
@@ -347,7 +350,7 @@ const StudyView: React.FC<StudyViewProps> = ({ problem }) => {
             <div className={questionContentClass}>
                 <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-zinc-900/5 dark:ring-white/5" />
                 <div className="flux-math prose prose-lg dark:prose-invert max-w-none leading-relaxed prose-p:leading-8 prose-p:my-4 prose-li:my-2 prose-strong:text-zinc-900 dark:prose-strong:text-white prose-em:text-zinc-700 dark:prose-em:text-zinc-300 prose-blockquote:border-l-primary prose-blockquote:text-zinc-600 dark:prose-blockquote:text-zinc-300">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                         {preprocessLaTeX(questionText)}
                     </ReactMarkdown>
                 </div>
@@ -474,7 +477,7 @@ const StudyView: React.FC<StudyViewProps> = ({ problem }) => {
                         }`}>
                             {msg.role === 'ai' ? (
                                 <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed prose-p:leading-7 prose-p:my-2 prose-li:my-1">
-                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                                         {normalizeMarkdown(msg.content)}
                                     </ReactMarkdown>
                                 </div>

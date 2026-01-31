@@ -5,6 +5,9 @@ import { Check, RotateCcw, ArrowRight, ArrowLeft, XCircle, ChevronRight } from '
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
+
+// KaTeX 配置：允许 Unicode/中文字符
+const katexOptions = { strict: false };
 import 'katex/dist/katex.min.css';
 import { apiFetchPracticeFeedback, apiFetchPracticeList, apiSaveQuestions } from '../../api';
 
@@ -131,7 +134,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ problem }) => {
             <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3 pl-1">题目内容</h4>
             <div className="bg-white dark:bg-[#1c1c21] border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm">
                 <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                         {normalizeMarkdown(feedbackPayload?.question || '')}
                     </ReactMarkdown>
                 </div>
@@ -143,7 +146,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ problem }) => {
             <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-3 pl-1">你的解题思路</h4>
             <div className="bg-white dark:bg-[#1c1c21] border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm relative overflow-hidden group">
                 <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                         {normalizeMarkdown(feedbackPayload?.user_answer || '')}
                     </ReactMarkdown>
                 </div>
@@ -158,7 +161,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ problem }) => {
                         <span className="text-[10px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">标准答案</span>
                     </div>
                     <div className="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                             {normalizeMarkdown(feedback.standard_solution.final_answer_latex)}
                         </ReactMarkdown>
                     </div>
@@ -183,7 +186,7 @@ const FeedbackView: React.FC<FeedbackViewProps> = ({ problem }) => {
                                     <ChevronRight className="text-zinc-400 group-open:rotate-90 transition-transform" size={16} />
                                 </summary>
                                 <div className="mt-3 prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                    <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[[rehypeKatex, katexOptions]]}>
                                         {normalizeMarkdown(step.content)}
                                     </ReactMarkdown>
                                 </div>

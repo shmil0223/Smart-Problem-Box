@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 
 export const thinkingSteps = [
-  "范家睿正在深度思考…",
-  "刘奕健正在发挥创造力…",
+  "Flux-Matrix正在深度思考…",
+  "Flux-Matrix正在发挥创造力…",
   "正在唤醒深度推理核心...",
   "提取关键语义信息...",
   "遍历全网亿级知识图谱...",
@@ -11,8 +11,8 @@ export const thinkingSteps = [
   "交叉验证搜索结果...",
   "组织语言逻辑结构...",
   "优化最终输出表达...",
-  "刘奕健已经顿悟！",
-  "范家睿思考出来了问题的解法！",
+  "Flux-Matrix已经顿悟！",
+  "Flux-Matrix思考出来了问题的解法！",
 ];
 
 const useTypewriter = (steps: string[], typeSpeed = 45, pauseMs = 1400) => {
